@@ -121,6 +121,13 @@ public @interface Loggable {
     String name() default "";
 
     /**
+     * Flag of the track to be used. If not specified,defaults to 'false'
+     * 
+     * @since 0.0.1
+     */
+    boolean trackFlag() default false;
+
+    /**
      * Identifies an exception that is never logged by {@link Loggable} if/when
      * being thrown out of an annotated method.
      * 

@@ -13,8 +13,7 @@ import com.acm.annotations.Loggable;
 @Loggable(prepend = true, value = Loggable.DEBUG, limit = 1, unit = TimeUnit.SECONDS, name = "test")
 @Service("foo")
 public class Foo implements IFoo {
-    // @Loggable(prepend = true, value = Loggable.DEBUG, limit = 2, unit =
-    // TimeUnit.SECONDS)
+    @Loggable(prepend = true, value = Loggable.DEBUG, limit = 2, unit = TimeUnit.MILLISECONDS, trackFlag = true)
     @Override
     public double power(int x, int p) {
         try {

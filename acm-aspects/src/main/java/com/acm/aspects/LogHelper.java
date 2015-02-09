@@ -29,8 +29,12 @@
  */
 package com.acm.aspects;
 
+import java.lang.reflect.Method;
+
+import org.slf4j.LoggerFactory;
+
+import com.acm.LogUtil.TrackLogger;
 import com.acm.annotations.Loggable;
-import com.jcabi.log.Logger;
 
 /**
  * Helper methods for logging.
@@ -39,6 +43,8 @@ import com.jcabi.log.Logger;
  * @version $Id$
  */
 final class LogHelper {
+
+    private static org.slf4j.Logger logger;
 
     /**
      * Helper constructor.
@@ -56,17 +62,19 @@ final class LogHelper {
      * @param params Message parameters
      * @checkstyle ParameterNumberCheck (3 lines)
      */
-    public static void log(final int level, final Object log, final String message, final Object... params) {
+    public static void log(final boolean trackFlag, final int level, final Object log, final String message,
+            final Object... params) {
+        logger = getLogger(log, trackFlag);
         if (level == Loggable.TRACE) {
-            Logger.trace(log, message, params);
+            logger.trace(message, params);
         } else if (level == Loggable.DEBUG) {
-            Logger.debug(log, message, params);
+            logger.debug(message, params);
         } else if (level == Loggable.INFO) {
-            Logger.info(log, message, params);
+            logger.info(message, params);
         } else if (level == Loggable.WARN) {
-            Logger.warn(log, message, params);
+            logger.warn(message, params);
         } else if (level == Loggable.ERROR) {
-            Logger.error(log, message, params);
+            logger.error(message, params);
         }
     }
 
@@ -77,19 +85,60 @@ final class LogHelper {
      * @param log Destination log
      * @return TRUE if enabled
      */
-    public static boolean enabled(final int level, final Object log) {
+    public static boolean enabled(final boolean trackFlag, final int level, final Object log) {
         boolean enabled;
+        logger = getLogger(log, trackFlag);
         if (level == Loggable.TRACE) {
-            enabled = Logger.isTraceEnabled(log);
+            enabled = logger.isTraceEnabled();
         } else if (level == Loggable.DEBUG) {
-            enabled = Logger.isDebugEnabled(log);
+            enabled = logger.isDebugEnabled();
         } else if (level == Loggable.INFO) {
-            enabled = Logger.isInfoEnabled(log);
+            enabled = logger.isInfoEnabled();
         } else if (level == Loggable.WARN) {
-            enabled = Logger.isWarnEnabled(log);
+            enabled = logger.isWarnEnabled();
         } else {
             enabled = true;
         }
         return enabled;
+    }
+
+    private static org.slf4j.Logger getLogger(final Object source, boolean trackFlag) {
+        final org.slf4j.Logger logger;
+        if (trackFlag) {
+            if (source instanceof Class) {
+                logger = TrackLogger.getLogger((Class<?>) source);
+            } else if (source instanceof String) {
+                logger = TrackLogger.getLogger(String.class.cast(source));
+            } else {
+                logger = TrackLogger.getLogger(source.getClass());
+            }
+
+        } else {
+            if (source instanceof Class) {
+                logger = LoggerFactory.getLogger((Class<?>) source);
+            } else if (source instanceof String) {
+                logger = LoggerFactory.getLogger(String.class.cast(source));
+            } else {
+                logger = LoggerFactory.getLogger(source.getClass());
+            }
+        }
+        return logger;
+    }
+
+    /**
+     * Get the destination logger for this method.
+     * 
+     * @param method The method
+     * @param name The Loggable annotation
+     * @return The logger that will be used
+     */
+    public static Object logger(final Method method, final String name) {
+        final Object source;
+        if (name == null || name.isEmpty()) {
+            source = method.getDeclaringClass();
+        } else {
+            source = name;
+        }
+        return source;
     }
 }

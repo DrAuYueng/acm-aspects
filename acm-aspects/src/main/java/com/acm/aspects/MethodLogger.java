@@ -108,21 +108,22 @@ public final class MethodLogger {
         final long start = System.nanoTime();
         final MethodLogger.Marker marker = new MethodLogger.Marker(point, annotation);
         this.running.add(marker);
+        final boolean trackFlag = annotation.trackFlag();
         try {
-            final Object logger = this.logger(method, annotation.name());
+            final Object logger = LogHelper.logger(method, annotation.name());
             int level = annotation.value();
             if (annotation.prepend()) {
-                LogHelper.log(level, logger,
+                LogHelper.log(trackFlag, level, logger,
                         new StringBuilder(Mnemos.toText(point, annotation.trim(), annotation.skipArgs(), annotation.logThis()))
                                 .append(": entered").toString());
             }
             final Object result = point.proceed();
             final long nano = System.nanoTime() - start;
-            if (LogHelper.enabled(level, logger) || this.over(annotation, nano)) {
+            if (LogHelper.enabled(trackFlag, level, logger) || this.over(annotation, nano)) {
                 if (this.over(annotation, nano)) {
                     level = Loggable.WARN;
                 }
-                LogHelper.log(level, logger, this.message(point, method, annotation, result, nano));
+                LogHelper.log(trackFlag, level, logger, this.message(point, method, annotation, result, nano));
             }
             return result;
             // @checkstyle IllegalCatch (1 line)
@@ -130,6 +131,7 @@ public final class MethodLogger {
             if (!MethodLogger.contains(annotation.ignore(), ex) && !ex.getClass().isAnnotationPresent(Loggable.Quiet.class)) {
                 final StackTraceElement trace = ex.getStackTrace()[0];
                 LogHelper.log(
+                        trackFlag,
                         Loggable.ERROR,
                         method.getDeclaringClass(),
                         Logger.format("%s: thrown %s out of %s#%s[%d] in %[nano]s",
@@ -177,23 +179,6 @@ public final class MethodLogger {
             msg.append(" (too slow!)");
         }
         return msg.toString();
-    }
-
-    /**
-     * Get the destination logger for this method.
-     * 
-     * @param method The method
-     * @param name The Loggable annotation
-     * @return The logger that will be used
-     */
-    private Object logger(final Method method, final String name) {
-        final Object source;
-        if (name.isEmpty()) {
-            source = method.getDeclaringClass();
-        } else {
-            source = name;
-        }
-        return source;
     }
 
     /**
@@ -301,13 +286,32 @@ public final class MethodLogger {
             final int cycle = (int) ((age - threshold) / threshold);
             if (cycle > this.logged.get()) {
                 final Method method = MethodSignature.class.cast(this.point.getSignature()).getMethod();
-                Logger.warn(name, "%s: takes more than %[ms]s, %[ms]s already, thread=%s/%s",
+                final Object log = LogHelper.logger(method, name);
+                final boolean trackFlag = this.annotation.trackFlag();
+                LogHelper.log(trackFlag, Loggable.WARN, log, Logger.format(
+                        "%s: takes more than %[ms]s, %[ms]s already, thread=%s/%s",
                         Mnemos.toText(this.point, true, this.annotation.skipArgs()),
                         TimeUnit.MILLISECONDS.convert(threshold, unit), TimeUnit.MILLISECONDS.convert(age, unit),
-                        this.thread.getName(), this.thread.getState());
-                Logger.debug(name, "%s: thread %s/%s stacktrace: %s",
-                        Mnemos.toText(this.point, true, this.annotation.skipArgs()), this.thread.getName(),
-                        this.thread.getState(), MethodLogger.textualize(this.thread.getStackTrace()));
+                        this.thread.getName(), this.thread.getState()));
+
+                LogHelper.log(
+                        trackFlag,
+                        Loggable.DEBUG,
+                        log,
+                        Logger.format("%s: thread %s/%s stacktrace: %s",
+                                Mnemos.toText(this.point, true, this.annotation.skipArgs()), this.thread.getName(),
+                                this.thread.getState(), MethodLogger.textualize(this.thread.getStackTrace())));
+                // Logger.warn(name,
+                // "%s: takes more than %[ms]s, %[ms]s already, thread=%s/%s",
+                // Mnemos.toText(this.point, true, this.annotation.skipArgs()),
+                // TimeUnit.MILLISECONDS.convert(threshold, unit),
+                // TimeUnit.MILLISECONDS.convert(age, unit),
+                // this.thread.getName(), this.thread.getState());
+                // Logger.debug(name, "%s: thread %s/%s stacktrace: %s",
+                // Mnemos.toText(this.point, true, this.annotation.skipArgs()),
+                // this.thread.getName(),
+                // this.thread.getState(),
+                // MethodLogger.textualize(this.thread.getStackTrace()));
                 this.logged.set(cycle);
             }
         }
