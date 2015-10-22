@@ -33,7 +33,6 @@ import java.lang.reflect.Method;
 
 import org.slf4j.LoggerFactory;
 
-import com.acm.LogUtil.TrackLogger;
 import com.acm.annotations.Loggable;
 
 /**
@@ -62,9 +61,8 @@ final class LogHelper {
      * @param params Message parameters
      * @checkstyle ParameterNumberCheck (3 lines)
      */
-    public static void log(final boolean trackFlag, final int level, final Object log, final String message,
-            final Object... params) {
-        logger = getLogger(log, trackFlag);
+    public static void log(final int level, final Object log, final String message, final Object... params) {
+        logger = getLogger(log);
         if (level == Loggable.TRACE) {
             logger.trace(message, params);
         } else if (level == Loggable.DEBUG) {
@@ -85,9 +83,9 @@ final class LogHelper {
      * @param log Destination log
      * @return TRUE if enabled
      */
-    public static boolean enabled(final boolean trackFlag, final int level, final Object log) {
+    public static boolean enabled(final int level, final Object log) {
         boolean enabled;
-        logger = getLogger(log, trackFlag);
+        logger = getLogger(log);
         if (level == Loggable.TRACE) {
             enabled = logger.isTraceEnabled();
         } else if (level == Loggable.DEBUG) {
@@ -102,25 +100,14 @@ final class LogHelper {
         return enabled;
     }
 
-    private static org.slf4j.Logger getLogger(final Object source, boolean trackFlag) {
+    private static org.slf4j.Logger getLogger(final Object source) {
         final org.slf4j.Logger logger;
-        if (trackFlag) {
-            if (source instanceof Class) {
-                logger = TrackLogger.getLogger((Class<?>) source);
-            } else if (source instanceof String) {
-                logger = TrackLogger.getLogger(String.class.cast(source));
-            } else {
-                logger = TrackLogger.getLogger(source.getClass());
-            }
-
+        if (source instanceof Class) {
+            logger = LoggerFactory.getLogger((Class<?>) source);
+        } else if (source instanceof String) {
+            logger = LoggerFactory.getLogger(String.class.cast(source));
         } else {
-            if (source instanceof Class) {
-                logger = LoggerFactory.getLogger((Class<?>) source);
-            } else if (source instanceof String) {
-                logger = LoggerFactory.getLogger(String.class.cast(source));
-            } else {
-                logger = LoggerFactory.getLogger(source.getClass());
-            }
+            logger = LoggerFactory.getLogger(source.getClass());
         }
         return logger;
     }
